@@ -1,6 +1,7 @@
 package com.bankApp.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,20 +18,61 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Last name is required")
+    @Size(max = 20, message = "Last name must be at most 20 characters")
+    @Pattern(regexp = "^[A-Za-z\\s]+$", message = "Last name can only contain letters and spaces")
     private String lastName;
+
+    @NotBlank(message = "First name is required")
+    @Size(max = 20, message = "First name must be at most 20 characters")
+    @Pattern(regexp = "^[A-Za-z\\s]+$", message = "First name can only contain letters and spaces")
     private String firstName;
+
+    @NotBlank(message = "Other name is required")
+    @Size(max = 50, message = "Other name must be at most 50 characters")
+    @Pattern(regexp = "^[A-Za-z\\s]*$", message = "Other name can only contain letters and spaces")
     private String otherName;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
     private String email;
-    private Integer age;  // Use lowercase "age" to match Java naming conventions
+
+    @NotNull(message = "Age is required")
+    @Min(value = 18, message = "Age must be 18 or older")
+    @Max(value = 100, message = "Age must be 100 or younger")
+    private Integer age;
+
+    @NotBlank(message = "Password is required")
     private String password;
-    private Integer nin;
-    private Integer bvn;
-    private String address;  // Use lowercase "address" to match Java naming conventions
+
+    @NotBlank(message = "NIN is required")
+    @Pattern(regexp = "\\d{10}", message = "NIN must be exactly 10 digits")
+    private String nin; // Change Integer to String for exact matching
+
+    @NotBlank(message = "BVN is required")
+    @Pattern(regexp = "\\d{10}", message = "BVN must be exactly 10 digits")
+    private String bvn; // Change Integer to String for exact matching
+
+    @NotBlank(message = "Address is required")
+    private String address;
+
+    @NotBlank(message = "Occupation is required")
     private String occupation;
 
-    private String nextOfKinLastName;  // "netOfKin" is likely intended to be "nextOfKin"
-    private String nextOfKinFirstName; // Correct "netOfKinFistName" to "nextOfKinFirstName"
+    @NotBlank(message = "Next of kin last name is required")
+    @Size(max = 20, message = "Next of kin last name must be at most 20 characters")
+    @Pattern(regexp = "^[A-Za-z\\s]+$", message = "Next of kin last name can only contain letters and spaces")
+    private String nextOfKinLastName;
+
+    @NotBlank(message = "Next of kin first name is required")
+    @Size(max = 20, message = "Next of kin first name must be at most 20 characters")
+    @Pattern(regexp = "^[A-Za-z\\s]+$", message = "Next of kin first name can only contain letters and spaces")
+    private String nextOfKinFirstName;
+
+    @NotBlank(message = "Next of kin address is required")
     private String nextOfKinAddress;
+
+    @NotBlank(message = "Next of kin occupation is required")
     private String nextOfKinOccupation;
 
     private Boolean isActive = true;
