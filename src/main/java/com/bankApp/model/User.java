@@ -83,4 +83,8 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<FileUpload> files;
+
+    private String refreshToken;
+
+    private Long refreshTokenExpirationTime;
 }

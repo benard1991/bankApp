@@ -22,7 +22,7 @@ public class FileUpload {
     private String filePath;
 
     @NotBlank(message = "File type is required")
-    @Pattern(regexp = "^[a-zA-Z0-9/\\-\\.]+$", message = "File type can only contain letters, numbers, slashes, hyphens, and dots")
+    @Pattern(regexp = "^(image|document|video|audio)$", message = "File type must be either 'image', 'document', 'video', or 'audio'")
     private String fileType;
 
     @NotNull(message = "User is required")
