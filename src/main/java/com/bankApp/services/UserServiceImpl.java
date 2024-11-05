@@ -39,10 +39,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .or(() -> {
-                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email);
-                });
+        return userRepository.findByEmail(email);
+    }
+
+    @Override
+    public User save(User user) {
+        return userRepository.save(user);
+    }
+
+    @Override
+    public Optional<User> findByNin(Integer nin) {
+        return userRepository.findByNin(nin);
+    }
+
+    @Override
+    public Optional<User> findByBvn(Integer bvn) {
+        return userRepository.findByBvn(bvn);
     }
 
     @Override

@@ -47,14 +47,17 @@ public class User {
 
     @NotBlank(message = "NIN is required")
     @Pattern(regexp = "\\d{10}", message = "NIN must be exactly 10 digits")
-    private String nin; // Change Integer to String for exact matching
+    private Integer nin; // Change Integer to String for exact matching
 
     @NotBlank(message = "BVN is required")
     @Pattern(regexp = "\\d{10}", message = "BVN must be exactly 10 digits")
-    private String bvn; // Change Integer to String for exact matching
+    private Integer bvn; // Change Integer to String for exact matching
 
     @NotBlank(message = "Address is required")
     private String address;
+
+    @NotBlank(message = "Address is required")
+    private String accountNumber;
 
     @NotBlank(message = "Occupation is required")
     private String occupation;

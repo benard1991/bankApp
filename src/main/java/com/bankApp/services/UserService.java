@@ -13,5 +13,11 @@ public interface UserService {
 
     Optional<User> findByEmail(String email);
 
+    User save(User user);
+
+    Optional<User> findByNin(Integer nin);
+
+    Optional<User> findByBvn(Integer bvn);
+
     Optional<User> findByAccount_AccountNumber(String accountNumber);
 }

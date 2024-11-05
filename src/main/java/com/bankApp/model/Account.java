@@ -20,7 +20,7 @@ public class Account {
 
     @NotBlank(message = "Account number is required")
     @Pattern(regexp = "^\\d{10}$", message = "Account number must be exactly 10 digits")
-    private String accountNumber;
+    private long accountNumber;
 
     @NotNull(message = "Balance is required")
     @Column(nullable = false)
