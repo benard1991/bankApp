@@ -20,7 +20,7 @@ public class Account {
 
     @NotBlank(message = "Account number is required")
     @Pattern(regexp = "^\\d{10}$", message = "Account number must be exactly 10 digits")
-    private long accountNumber;
+    private String accountNumber;
 
     @NotNull(message = "Balance is required")
     @Column(nullable = false)
@@ -29,5 +29,5 @@ public class Account {
     @OneToOne(mappedBy = "account")
     private User user;
 
-    private Boolean isActive = true;
+    private Boolean isActive = false;
 }

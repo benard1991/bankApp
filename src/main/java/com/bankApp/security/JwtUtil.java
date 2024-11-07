@@ -3,8 +3,10 @@ package com.bankApp.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -22,10 +24,24 @@ public class JwtUtil {
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpirationTime;
 
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
     public String generateAccessToken(String username) {
         return createToken(username, accessTokenExpirationTime, new HashMap<>());
     }
 
+    // Method to generate the JWT access token
+    public String generateAccessToken(String username, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);  // Add role as a claim
+        return createToken(username, accessTokenExpirationTime, claims);
+    }
+
+
+    // Method to generate the refresh token
     public String generateRefreshToken(String username) {
         return createToken(username, refreshTokenExpirationTime, new HashMap<>());
     }
@@ -71,6 +87,19 @@ public class JwtUtil {
         }
     }
 
+    // Extract the role from the JWT
+    public String extractRole(String token) {
+        try {
+            return Jwts.parser()
+                    .setSigningKey(secretKey)
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .get("role", String.class);  // Extract the role from the token
+        } catch (Exception e) {
+            return null; // Handle invalid token case
+        }
+    }
+
     public long getAccessTokenExpirationTime() {
         return accessTokenExpirationTime;
     }
@@ -78,4 +107,6 @@ public class JwtUtil {
     public long getRefreshTokenExpirationTime() {
         return refreshTokenExpirationTime;
     }
+
+
 }

@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @NoArgsConstructor
@@ -90,4 +92,21 @@ public class User {
     private String refreshToken;
 
     private Long refreshTokenExpirationTime;
+
+
+    // Add roles to user
+    @ElementCollection(fetch = FetchType.EAGER)  // Using EAGER to fetch roles with user (you could use LAZY for more control)
+    @Enumerated(EnumType.STRING)  // Store roles as strings (e.g., ADMIN, USER, SUPERADMIN)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    private Set<Role> roles;  // The Set will store roles like ADMIN, USER, etc.
+
+
+    public String getRole() {
+        if (roles != null && !roles.isEmpty()) {
+            return roles.stream()
+                    .map(Role::name)
+                    .collect(Collectors.joining(", "));
+        }
+        return "No roles assigned";
+    }
 }

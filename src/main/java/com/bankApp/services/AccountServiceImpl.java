@@ -31,17 +31,13 @@ public class AccountServiceImpl implements AccountService{
     }
 
     public Optional<Account> findById(Long id) {
-        return accountRepository.findById(id)
-                .or(() -> {
-                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with ID: " + id);
-                });
+        return accountRepository.findById(id);
+
     }
 
     @Override
     public Optional<Account> findByAccountNumber(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
-                .or(() -> {
-                    throw new AccountNotFoundException( "User with account Number : " + accountNumber+ "not found");
-                });
+        return accountRepository.findByAccountNumber(accountNumber);
     }
+
 }

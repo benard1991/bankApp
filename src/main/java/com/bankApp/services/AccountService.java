@@ -14,7 +14,7 @@ public interface AccountService {
         Optional<Account> findById(Long id);
 
         // Find an account by account number (if needed)
-        Optional<Account> findByAccountNumber(String accountNumber);
+        Optional<Account> findByAccountNumber(String  accountNumber);
     }
 
 
