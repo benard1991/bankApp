@@ -17,12 +17,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByNin(Integer nin);
+    Optional<User> findByNin(String nin);
 
-    Optional<User> findByBvn(Integer bvn);
+    Optional<User> findByBvn(String bvn);
 
     User save(User user);
     // Find a user by username
     Optional<User> findByAccount_AccountNumber(String accountNumber);
-
 }

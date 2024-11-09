@@ -47,19 +47,19 @@ public class User {
     @NotBlank(message = "Password is required")
     private String password;
 
+    // Change Integer to String for NIN and BVN to use @Pattern
     @NotBlank(message = "NIN is required")
     @Pattern(regexp = "\\d{10}", message = "NIN must be exactly 10 digits")
-    private Integer nin; // Change Integer to String for exact matching
+    private String nin;  // Changed from Integer to String
 
     @NotBlank(message = "BVN is required")
     @Pattern(regexp = "\\d{10}", message = "BVN must be exactly 10 digits")
-    private Integer bvn; // Change Integer to String for exact matching
+    private String bvn;  // Changed from Integer to String
 
     @NotBlank(message = "Address is required")
     private String address;
 
-    @NotBlank(message = "Address is required")
-    private String accountNumber;
+
 
     @NotBlank(message = "Occupation is required")
     private String occupation;
@@ -82,8 +82,8 @@ public class User {
 
     private Boolean isActive = true;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "account_id", referencedColumnName = "id")
+    @OneToOne(cascade = CascadeType.ALL)  // Make sure CascadeType is set
+    @JoinColumn(name = "account_id", referencedColumnName = "id" , nullable = false)
     private Account account;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -92,7 +92,6 @@ public class User {
     private String refreshToken;
 
     private Long refreshTokenExpirationTime;
-
 
     // Add roles to user
     @ElementCollection(fetch = FetchType.EAGER)  // Using EAGER to fetch roles with user (you could use LAZY for more control)

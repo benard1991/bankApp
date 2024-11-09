@@ -2,7 +2,7 @@ package com.bankApp.controller;
 
 import com.bankApp.dto.RegistrationRequest;
 import com.bankApp.exceptionHandler.BvnExistException;
-import com.bankApp.exceptionHandler.EmailNotFoundException;
+import com.bankApp.exceptionHandler.EmailAlreadyExistsException;
 import com.bankApp.exceptionHandler.NinExistException;
 import com.bankApp.model.Account;
 import com.bankApp.model.Role;
@@ -12,11 +12,15 @@ import com.bankApp.security.PasswordEncoderUtil;
 import com.bankApp.services.UserService;
 import com.bankApp.util.CustomResponse;
 import com.bankApp.util.AccountNumberGenerator;
+import com.bankApp.util.ValidationErrorService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,12 +37,18 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @PostMapping("/register")
-    public ResponseEntity<CustomResponse<String>> register(@RequestBody RegistrationRequest registrationRequest) {
+    @Autowired
+    private ValidationErrorService validationErrorService;
 
+    @PostMapping("/register")
+    public ResponseEntity<CustomResponse> register(@Valid @RequestBody RegistrationRequest registrationRequest, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            CustomResponse<List<String>> errorResponse = validationErrorService.getErrorResponse(bindingResult);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
         // Check if email already exists
         if (userService.findByEmail(registrationRequest.getEmail()).isPresent()) {
-            throw new EmailNotFoundException("Email already exists!");
+            throw new EmailAlreadyExistsException("Email already exists!");
         }
 
         // Check if BVN already exists
@@ -50,13 +60,15 @@ public class UserController {
         if (userService.findByNin(registrationRequest.getNin()).isPresent()) {
             throw new NinExistException("NIN already exists!");
         }
-
         // Generate a new account and account number
         Account account = new Account();
-        String accountNumber = AccountNumberGenerator.generateAccountNumber();
-        account.setAccountNumber(accountNumber);
+        String accountNumber = AccountNumberGenerator.generateAccountNumber();  // Generate account number
+        account.setAccountNumber(accountNumber);  // Set the generated account number
+        account.setBalance(0.0);
+        account.setAccountType(registrationRequest.getAccountType());
 
-        // Create the user and set the necessary fields
+        System.out.println("Generated Account Number: " + accountNumber); // Debugging log
+        // Create the user and set necessary fields
         User user = new User();
         user.setFirstName(registrationRequest.getFirstName());
         user.setLastName(registrationRequest.getLastName());
@@ -71,17 +83,19 @@ public class UserController {
         user.setNextOfKinLastName(registrationRequest.getNextOfKinLastName());
         user.setNextOfKinOccupation(registrationRequest.getNextOfKinOccupation());
         user.setNextOfKinAddress(registrationRequest.getNextOfKinAddress());
-
-        // Encrypt the password before saving the user
+        // Encrypt the password
         user.setPassword(passwordEncoderUtil.encodePassword(registrationRequest.getPassword()));
-
-        user.setRoles(Set.of(Role.USER)); // Assigning the USER role to the new user
-        // Save the user to the database
+        // Assign roles to the user
+        user.setRoles(Set.of(Role.USER));
+        // Set the generated account to the user
+        user.setAccount(account);
+        account.setUser(user);  // Set the user
+        // Save the user and cascade the account save
         userService.save(user);
-
-        // Return a success response
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                CustomResponse.success(Optional.of("User registered successfully"), "Registration successful")
-        );
+        // Return response
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new CustomResponse<>(HttpStatus.CREATED.value(), "User successfully registered"));
     }
+
+
 }

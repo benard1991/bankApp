@@ -22,12 +22,18 @@ public class Account {
     @Pattern(regexp = "^\\d{10}$", message = "Account number must be exactly 10 digits")
     private String accountNumber;
 
+
+    @NotBlank(message = "Account type is required")
+    private String accountType;
+
     @NotNull(message = "Balance is required")
     @Column(nullable = false)
     private Double balance = 0.0;
 
-    @OneToOne(mappedBy = "account")
+    @ManyToOne
+    @JoinColumn(name = "user_id")  // This creates the foreign key column
     private User user;
+
 
     private Boolean isActive = false;
 }

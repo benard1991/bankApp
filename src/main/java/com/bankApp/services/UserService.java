@@ -15,9 +15,9 @@ public interface UserService {
 
     User save(User user);
 
-    Optional<User> findByNin(Integer nin);
+    Optional<User> findByNin(String nin);
 
-    Optional<User> findByBvn(Integer bvn);
+    Optional<User> findByBvn(String bvn);
 
     Optional<User> findByAccount_AccountNumber(String accountNumber);
 }

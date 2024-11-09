@@ -87,6 +87,24 @@
 			<version>0.9.1</version>
 		</dependency>
 
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
+		<!-- JAXB API (for Java 9 and above) -->
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>2.3.1</version> <!-- You can use the latest version -->
+		</dependency>
+
+		<!-- JAXB Runtime (for Java 9 and above) -->
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
+			<version>2.3.3</version> <!-- You can use the latest version -->
+		</dependency>
 	</dependencies>
 
 	<build>
