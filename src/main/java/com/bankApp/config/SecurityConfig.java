@@ -40,7 +40,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests(authz -> authz
-                        .requestMatchers("/api/register", "/api/auth/login", "/api/auth/refresh")
+                        .requestMatchers("/api/register", "/api/auth/login", "/api/auth/refresh","/api/auth/logout")
                         .permitAll()
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")  // Only users with ROLE_ADMIN can access /api/admin/**

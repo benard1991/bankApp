@@ -73,7 +73,7 @@ public class JwtUtil {
         String extractedUsername = extractUsername(token);
         return (extractedUsername != null && extractedUsername.equals(username) && !isTokenExpired(token));
     }
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         try {
             Date expirationDate = Jwts.parser()
                     .setSigningKey(secretKey)
@@ -108,5 +108,14 @@ public class JwtUtil {
         return refreshTokenExpirationTime;
     }
 
+
+    public String extractJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            // Extract the JWT token by removing the "Bearer " prefix
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
 
 }

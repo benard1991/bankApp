@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // Extract JWT from the request
-        String jwtToken = extractJwtFromRequest(request);
+        String jwtToken = jwtUtil.extractJwtFromRequest(request);
 
         // If there's a JWT and it's valid, authenticate the user
         if (StringUtils.hasText(jwtToken) && jwtUtil.validateToken(jwtToken, jwtUtil.extractUsername(jwtToken))) {
@@ -51,16 +51,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Continue with the filter chain (proceed to the next filter or the actual endpoint)
         filterChain.doFilter(request, response);
-    }
-
-    // Helper method to extract JWT from the request (can be from headers or cookies)
-    private String extractJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            // Extract JWT token by removing "Bearer " prefix
-            return bearerToken.substring(7);
-        }
-        return null;
     }
 
     // Helper method to extract authorities (roles) from the JWT

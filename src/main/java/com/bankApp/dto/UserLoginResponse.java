@@ -1,4 +1,4 @@
-package com.bankApp.util;
+package com.bankApp.dto;
 
 import lombok.Data;
 

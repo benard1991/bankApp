@@ -10,7 +10,7 @@ import com.bankApp.model.User;
 import com.bankApp.security.JwtUtil;
 import com.bankApp.security.PasswordEncoderUtil;
 import com.bankApp.services.UserService;
-import com.bankApp.util.CustomResponse;
+import com.bankApp.dto.CustomResponse;
 import com.bankApp.util.AccountNumberGenerator;
 import com.bankApp.util.ValidationErrorService;
 import jakarta.validation.Valid;
@@ -21,7 +21,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @RestController

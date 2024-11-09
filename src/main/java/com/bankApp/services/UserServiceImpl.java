@@ -70,4 +70,18 @@ public class UserServiceImpl implements UserService {
                     throw new AccountNotFoundException( "User not found with account number: " + accountNumber);
                 });
     }
+
+    @Override
+    public User findByRefreshToken(String refreshToken) {
+        return userRepository.findByRefreshToken(refreshToken);
+    }
+
+    @Override
+    public void updateRefreshToken(String email, String refreshToken) {
+        int updatedRows = userRepository.updateRefreshToken(email, refreshToken);
+        if (updatedRows == 0) {
+            // Handle the case where the user was not found
+            throw new UserNotFoundExeption("User not found with email: " + email);
+        }
+    }
 }

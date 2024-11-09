@@ -20,4 +20,8 @@ public interface UserService {
     Optional<User> findByBvn(String bvn);
 
     Optional<User> findByAccount_AccountNumber(String accountNumber);
+
+    User findByRefreshToken(String refreshToken);
+
+    void updateRefreshToken(String email, String refreshToken);
 }
