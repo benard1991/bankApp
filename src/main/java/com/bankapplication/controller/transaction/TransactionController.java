@@ -5,6 +5,7 @@ import com.bankapplication.model.Account;
 import com.bankapplication.model.Transaction;
 import com.bankapplication.service.transactionService.TransactionService;
 import com.bankapplication.util.PaginationInfo;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -29,10 +30,10 @@ public class TransactionController {
     @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
     @PostMapping("/transfer")
     public ResponseEntity<GenericResponse<TransactionResponseDto>> processTransaction(
-            @Valid @RequestBody TransactionDto transactionDto) {
+            @Valid @RequestBody TransactionDto transactionDto, HttpServletRequest request) {
         logger.info("Received transaction request: {}", transactionDto);
 
-        TransactionResponseDto transactionResponse = transactionService.handleTransaction(transactionDto);
+        TransactionResponseDto transactionResponse = transactionService.handleTransaction(transactionDto,request );
         GenericResponse<TransactionResponseDto> response = new GenericResponse<>(
                 transactionResponse,
                 "Transaction processed successfully",
@@ -44,16 +45,16 @@ public class TransactionController {
 
     @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
     @PostMapping("/deposit")
-    public ResponseEntity<GenericResponse<Account>> deposit(@RequestBody DepositRequest depositRequest) {
-        Account account = transactionService.deposit(depositRequest.getAccountNumber(), depositRequest.getAmount());
+    public ResponseEntity<GenericResponse<Account>> deposit(@RequestBody DepositRequest depositRequest,HttpServletRequest request) {
+        Account account = transactionService.deposit(depositRequest.getAccountNumber(), depositRequest.getAmount(),request);
         GenericResponse<Account> response = new GenericResponse<>(account, "Deposit successful", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
     @PostMapping("/withdraw")
-    public ResponseEntity<GenericResponse<Account>> withdraw(@RequestBody DepositRequest depositRequest) {
-        Account account = transactionService.withdraw(depositRequest.getAccountNumber(), depositRequest.getAmount());
+    public ResponseEntity<GenericResponse<Account>> withdraw(@RequestBody DepositRequest depositRequest, HttpServletRequest request) {
+        Account account = transactionService.withdraw(depositRequest.getAccountNumber(), depositRequest.getAmount(),request);
         GenericResponse<Account> response = new GenericResponse<>(account, "withdrawal successful", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
     }

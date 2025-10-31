@@ -21,12 +21,14 @@ public class Token {
     private LocalDateTime accessTokenExpiration;
     private LocalDateTime refreshTokenExpiration;
 
-    private String tokenType;  // "ACCESS" or "REFRESH"
-    private String status;     // "ACTIVE" or "REVOKED"
+    private String tokenType;
+    private String status;
     private LocalDateTime issuedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @JsonBackReference
     private User user;
+
+
 }

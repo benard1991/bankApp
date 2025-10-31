@@ -12,7 +12,10 @@ import com.bankapplication.model.User;
 import com.bankapplication.repository.AccountRepository;
 import com.bankapplication.repository.TransactionRepository;
 import com.bankapplication.repository.UserRepository;
+import com.bankapplication.service.AuditTrailService.AuditTrailService;
 import com.bankapplication.service.util.TransactionUtils;
+import com.bankapplication.util.RequestUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,31 +34,72 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
+    private  final AuditTrailService auditTrailService;
+    private  final RequestUtils requestUtils;
 
 
 
     @Override
-    public TransactionResponseDto handleTransaction(TransactionDto transactionDto) {
-        logger.info("TransactionDto Request ==== " + transactionDto);
+    public TransactionResponseDto handleTransaction(TransactionDto transactionDto, HttpServletRequest request) {
+        logger.info("TransactionDto Request ===> {}", transactionDto);
+
         if (transactionDto.getAmount() <= 0) {
-            throw new UserAlreadyExistsException.InvalidAmountException("Deposit amount must be greater than zero.");
+            throw new UserAlreadyExistsException.InvalidAmountException("Transaction amount must be greater than zero.");
         }
+
         Account sourceAccount = accountRepository.findByAccountNumber(transactionDto.getSourceAccountNumber())
                 .orElseThrow(() -> new AccountNotFoundException("Source account not found."));
-        logger.info("sourceAccount ==== " + sourceAccount);
+        logger.info("Source account found ===> {}", sourceAccount.getAccountNumber());
 
         if (sourceAccount.getBalance() < transactionDto.getAmount()) {
-            logger.info("Insufficient funds");
+            logger.warn("Insufficient funds for account {}", sourceAccount.getAccountNumber());
             throw new InsufficientFundsException("Insufficient funds.");
         }
 
+        // Get client IP
+        String clientIp = requestUtils.getClientIp(request);
+
+        // Record Audit Trail (example before performing transaction)
+        auditTrailService.recordAudit(
+                sourceAccount.getUser().getId(),
+                sourceAccount.getUser().getUsername(),
+                "TRANSFER",
+                "Transaction",
+                String.valueOf(sourceAccount.getId()),
+                String.valueOf(sourceAccount.getBalance()),
+                String.valueOf(sourceAccount.getBalance() - transactionDto.getAmount()),
+                "Initiated transfer of ₦" + transactionDto.getAmount() + " from account " + sourceAccount.getAccountNumber(),
+                clientIp,
+                "PENDING"
+        );
+
+        // Determine transfer channel
         String channel = transactionDto.getTransferChannel().toUpperCase();
-        logger.info("Switch transaction channel ==== " + channel);
-        return switch (channel) {
-            case "INTRA" -> handleIntraBankTransaction(transactionDto, sourceAccount);
-            case "INTER" -> handleInterBankTransaction(transactionDto, sourceAccount);
+        logger.info("Switching transaction channel ===> {}", channel);
+
+        TransactionResponseDto response;
+
+        switch (channel) {
+            case "INTRA" -> response = handleIntraBankTransaction(transactionDto, sourceAccount);
+            case "INTER" -> response = handleInterBankTransaction(transactionDto, sourceAccount);
             default -> throw new IllegalArgumentException("Unsupported transfer channel: " + channel);
-        };
+        }
+
+        // Update audit trail after success
+        auditTrailService.recordAudit(
+                sourceAccount.getUser().getId(),
+                sourceAccount.getUser().getUsername(),
+                "TRANSFER",
+                "Transaction",
+                String.valueOf(sourceAccount.getId()),
+                String.valueOf(sourceAccount.getBalance()),
+                String.valueOf(sourceAccount.getBalance() - transactionDto.getAmount()),
+                "Successfully transferred ₦" + transactionDto.getAmount() + " via " + channel + " channel.",
+                clientIp,
+                "SUCCESS"
+        );
+
+        return response;
     }
 
     private TransactionResponseDto handleIntraBankTransaction(TransactionDto dto, Account sourceAccount) {
@@ -76,6 +120,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         transactionUtils.createTransaction(sourceAccount, dto.getAmount(), "DEBIT", dto.getSourceAccountNumber(), dto.getDestinationAccountNumber(), "INTRA", null, "SUCCESS");
         transactionUtils.createTransaction(destinationAccount, dto.getAmount(), "CREDIT", dto.getSourceAccountNumber(), dto.getDestinationAccountNumber(), "INTRA", null, "SUCCESS");
+
+
 
         return TransactionResponseDto.builder()
                 .transactionType("DEBIT")
@@ -113,7 +159,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Transactional
     @Override
-    public Account deposit(String accountNumber, double amount) {
+    public Account deposit(String accountNumber, double amount, HttpServletRequest request) {
         if (amount <= 0) {
             throw new UserAlreadyExistsException.InvalidAmountException("Deposit amount must be greater than zero.");
         }
@@ -127,11 +173,26 @@ public class TransactionServiceImpl implements TransactionService {
 
         transactionUtils.createTransaction(updatedAccount, amount, "CREDIT", accountNumber, null, "DEPOSIT", null, "SUCCESS");
 
+        // Add Audit Trail here
+        String clientIp = requestUtils.getClientIp(request);
+        auditTrailService.recordAudit(
+                account.getUser().getId(),
+                account.getUser().getUsername(),
+                "DEPOSIT",
+                "Account",
+                String.valueOf(account.getId()),
+                String.valueOf(account.getBalance()),
+                String.valueOf(updatedAccount.getBalance()),
+                "User deposited ₦" + amount + " from account " + accountNumber,
+                clientIp,
+                "SUCCESS"
+        );
+
         return updatedAccount;
     }
 
     @Override
-    public Account withdraw(String accountNumber, double amount) {
+    public Account withdraw(String accountNumber, double amount,  HttpServletRequest request) {
         if (amount <= 0) {
             throw new UserAlreadyExistsException.InvalidAmountException("withdraw amount must be greater than zero.");
         }
@@ -142,8 +203,22 @@ public class TransactionServiceImpl implements TransactionService {
 
         Account updatedAccount = accountRepository.save(account);
 
-
         transactionUtils.createTransaction(updatedAccount, amount, "CREDIT", accountNumber, null, "WITHDRAWAL", null, "SUCCESS");
+
+        // Add Audit Trail here
+        String clientIp = requestUtils.getClientIp(request);
+              auditTrailService.recordAudit(
+                account.getUser().getId(),
+                account.getUser().getUsername(),
+                "WITHDRAWAL",
+                "Account",
+                String.valueOf(account.getId()),
+                String.valueOf(account.getBalance()),
+                String.valueOf(updatedAccount.getBalance()),
+                "User withdrew ₦" + amount + " from account " + accountNumber,
+                      clientIp,
+                "SUCCESS"
+        );
 
         return updatedAccount;
     }
