@@ -1,10 +1,8 @@
 package com.bankapplication.service.userService;
 
-import com.bankapplication.dto.ChangePasswordRequest;
-import com.bankapplication.dto.GenericResponse;
-import com.bankapplication.dto.UpdateAccountRequest;
-import com.bankapplication.dto.UserDto;
+import com.bankapplication.dto.*;
 import com.bankapplication.exception.*;
+import com.bankapplication.mapper.UserMapper;
 import com.bankapplication.model.Account;
 import com.bankapplication.model.PasswordResetToken;
 import com.bankapplication.model.Role;
@@ -27,6 +25,8 @@ import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -61,6 +61,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private  final TokenService tokenService;
     private final Cloudinary cloudinary;
+    private final UserMapper userMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
@@ -210,10 +211,27 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + userId + " not found"));
+
+    @Override
+//    @Cacheable(value = "userProfiles", key = "#userId")
+    public GenericResponse<UserProfileDto> getUserProfile(Long userId) {
+        logger.info("Fetching user profile for ID: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID " + userId));
+
+        UserProfileDto profileDto = userMapper.toUserProfileDto(user);
+
+        logger.info(" User profile successfully fetched for ID: {}", userId);
+
+        return new GenericResponse<>(
+                profileDto,
+                "User profile retrieved successfully",
+                HttpStatus.OK.value()
+        );
     }
+
+
 
     @Override
     public User updateUser(Long userId, UpdateAccountRequest request) {
@@ -290,10 +308,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "'page_' + #pageable.pageNumber + '_size_' + #pageable.pageSize + '_sort_' + #pageable.sort.toString()")
     public Page<User> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
+        try {
+            logger.info("Fetching user from the databases");
+            return userRepository.findAll(pageable);
+        } catch (DataAccessException ex) {
+            throw new DatabaseException("Database error occurred while fetching users", ex);
+        } catch (Exception ex) {
+            throw new RuntimeException("Unexpected error while fetching users", ex);
+        }
     }
-
 
     @Override
     public User deactivateUser(Long userId) {

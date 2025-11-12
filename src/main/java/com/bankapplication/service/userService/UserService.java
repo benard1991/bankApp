@@ -1,9 +1,6 @@
 package com.bankapplication.service.userService;
 
-import com.bankapplication.dto.ChangePasswordRequest;
-import com.bankapplication.dto.GenericResponse;
-import com.bankapplication.dto.UpdateAccountRequest;
-import com.bankapplication.dto.UserDto;
+import com.bankapplication.dto.*;
 import com.bankapplication.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +16,8 @@ public interface UserService {
 
     public Map<String, Object> login(String username, String password);
 
-    public User getUserById(Long id);
+
+    GenericResponse<UserProfileDto> getUserProfile(Long userId);
 
     User updateUser(Long userId, UpdateAccountRequest request);
 

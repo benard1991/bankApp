@@ -3,6 +3,7 @@ package com.bankapplication.controller.user;
 import com.bankapplication.dto.ChangePasswordRequest;
 import com.bankapplication.dto.GenericResponse;
 import com.bankapplication.dto.UpdateAccountRequest;
+import com.bankapplication.dto.UserProfileDto;
 import com.bankapplication.model.User;
 import com.bankapplication.service.userService.UserService;
 import jakarta.validation.Valid;
@@ -25,12 +26,19 @@ private  final UserService userService;
     }
 
 
+//    @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
+//    @GetMapping("/getProfile/{id}")
+//    public ResponseEntity<GenericResponse> getProfile(@PathVariable Long id) {
+//        User user = userService.getUserById(id);
+//        return ResponseEntity.status(HttpStatus.OK)
+//                .body(new GenericResponse<>( user,"User found successfully",HttpStatus.OK.value()));
+//    }
+
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     @GetMapping("/getProfile/{id}")
-    public ResponseEntity<GenericResponse> getProfile(@PathVariable Long id) {
-        User user = userService.getUserById(id);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new GenericResponse<>( user,"User found successfully",HttpStatus.OK.value()));
+    public ResponseEntity<GenericResponse<UserProfileDto>> getProfile(@PathVariable Long id) {
+        GenericResponse<UserProfileDto> response = userService.getUserProfile(id);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
    @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER')")

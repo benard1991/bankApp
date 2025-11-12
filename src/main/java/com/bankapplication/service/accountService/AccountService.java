@@ -12,10 +12,9 @@ public interface AccountService {
 
     Optional<Account> findById(Long userId);
 
-    List<Account> getAccountsByUserId(Long userId);
+    List<AccountDto> getAccountsByUserId(Long userId);
 
-    Optional<Account> getAccountByAccountNumber(String accountNumber);
-
+    AccountDto getAccountByAccountNumber(String accountNumber);
 
 
 

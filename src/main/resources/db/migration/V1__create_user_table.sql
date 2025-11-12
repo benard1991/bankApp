@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    firstname VARCHAR(255),
+    lastname VARCHAR(255),
+    password VARCHAR(255),
+    phone_number VARCHAR(20),
+    age INT,
+    nin VARCHAR(20),
+    bvn VARCHAR(20),
+    state VARCHAR(100),
+    local_government VARCHAR(100),
+    image VARCHAR(500),
+    nationality VARCHAR(50),
+    religion VARCHAR(50),
+    account_type VARCHAR(50),
+    next_of_kin_first_name VARCHAR(255),
+    next_of_kin_last_name VARCHAR(255),
+    next_of_kin_address VARCHAR(255),
+    next_of_kin_phone_number VARCHAR(20),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

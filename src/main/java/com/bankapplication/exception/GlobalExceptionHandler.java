@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TokenExpiredException.class)
     public ResponseEntity<Object> handleTokenExpiredException(TokenExpiredException ex) {
         ErrorDetails errorDetails = new ErrorDetails(401, ex.getMessage(), "UNAUTHORIZED");
-        return new ResponseEntity<>(errorDetails, HttpStatus.UNAUTHORIZED); // ✅ Changed from NOT_FOUND to UNAUTHORIZED
+        return new ResponseEntity<>(errorDetails, HttpStatus.UNAUTHORIZED); //  Changed from NOT_FOUND to UNAUTHORIZED
     }
 
     // Custom handler for TokenExpiredException
@@ -134,6 +134,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+
+    @ExceptionHandler(DatabaseException.class)
+    public ResponseEntity<String> handleDatabaseException(DatabaseException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
+    }
+//
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<String> handleGeneralException(Exception ex) {
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+//    }
 
 
     // Custom handler for MethodArgumentNotValidException (validation errors)
