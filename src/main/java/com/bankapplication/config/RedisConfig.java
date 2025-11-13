@@ -13,20 +13,25 @@ import java.time.Duration;
 
 @Configuration
 public class RedisConfig {
+
     @Bean
     public RedisCacheConfiguration cacheConfiguration() {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule()); // support LocalDateTime
-        mapper.activateDefaultTyping(mapper.getPolymorphicTypeValidator(),
+        mapper.registerModule(new JavaTimeModule());
+        mapper.activateDefaultTyping(
+                mapper.getPolymorphicTypeValidator(),
                 ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY);
+                JsonTypeInfo.As.PROPERTY
+        );
 
         return RedisCacheConfiguration.defaultCacheConfig()
+                .disableCachingNullValues()
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(
                                 new GenericJackson2JsonRedisSerializer(mapper)
                         )
                 )
-                .entryTtl(Duration.ofHours(1));
+                .prefixCacheNameWith("bankApp::")
+                .entryTtl(Duration.ofMinutes(60));
     }
 }

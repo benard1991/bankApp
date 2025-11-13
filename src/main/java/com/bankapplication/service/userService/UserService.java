@@ -19,7 +19,7 @@ public interface UserService {
 
     GenericResponse<UserProfileDto> getUserProfile(Long userId);
 
-    User updateUser(Long userId, UpdateAccountRequest request);
+    User updateUserProfile(Long userId, UpdateAccountRequest request);
 
     public GenericResponse deleteUser(Long userId);
 

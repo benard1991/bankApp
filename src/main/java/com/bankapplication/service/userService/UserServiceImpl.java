@@ -25,6 +25,7 @@ import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
@@ -213,7 +214,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-//    @Cacheable(value = "userProfiles", key = "#userId")
+    @Cacheable(value = "userProfiles", key = "#userId")
     public GenericResponse<UserProfileDto> getUserProfile(Long userId) {
         logger.info("Fetching user profile for ID: {}", userId);
 
@@ -222,30 +223,33 @@ public class UserServiceImpl implements UserService {
 
         UserProfileDto profileDto = userMapper.toUserProfileDto(user);
 
-        logger.info(" User profile successfully fetched for ID: {}", userId);
+        logger.info("User profile successfully fetched for ID: {}", userId);
 
-        return new GenericResponse<>(
-                profileDto,
-                "User profile retrieved successfully",
-                HttpStatus.OK.value()
-        );
+        return new GenericResponse<>(profileDto, "User profile retrieved successfully", HttpStatus.OK.value());
     }
 
 
 
+
     @Override
-    public User updateUser(Long userId, UpdateAccountRequest request) {
+    @CacheEvict(value = "userProfiles", key = "#userId")
+    public User updateUserProfile(Long userId, UpdateAccountRequest request) {
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
 
+        // Validate Next of Kin for CUSTOMER role
         if ("CUSTOMER".equalsIgnoreCase(existingUser.getRoles().iterator().next().getName())) {
-            if (request.getNextOfKinFirstName() == null || request.getNextOfKinLastName() == null || request.getNextOfKinPhoneNumber() == null) {
+            if (request.getNextOfKinFirstName() == null
+                    || request.getNextOfKinLastName() == null
+                    || request.getNextOfKinPhoneNumber() == null) {
                 logger.info("Next of kin is required for Customers");
-                throw new InvalidNextOfKinDetailsException("Next of Kin details are required for the CUSTOMER role.");
-
+                throw new InvalidNextOfKinDetailsException(
+                        "Next of Kin details are required for the CUSTOMER role."
+                );
             }
         }
 
+        // Update user fields
         existingUser.setFirstname(request.getFirstname());
         existingUser.setLastname(request.getLastname());
         existingUser.setAge(request.getAge());
@@ -261,7 +265,12 @@ public class UserServiceImpl implements UserService {
         existingUser.setNextOfKinLastName(request.getNextOfKinLastName());
         existingUser.setNextOfKinPhoneNumber(request.getNextOfKinPhoneNumber());
 
-        return userRepository.save(existingUser);
+        // Save changes
+        User updatedUser = userRepository.save(existingUser);
+
+        logger.info("User profile updated and cache evicted for ID: {}", userId);
+
+        return updatedUser;
     }
 
 

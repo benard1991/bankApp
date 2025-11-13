@@ -43,7 +43,7 @@ public class AccountController {
             return ResponseEntity.ok(new GenericResponse<>(accounts, "Accounts retrieved successfully", HttpStatus.OK.value()));
         } catch (Exception e) {
             log.error("Error fetching accounts for userId {}: {}", userId, e.getMessage(), e);
-            throw e; // Let your global handler handle it
+            throw e;
         }
     }
 

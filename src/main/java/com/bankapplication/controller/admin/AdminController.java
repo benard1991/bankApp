@@ -70,7 +70,7 @@ public class AdminController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PutMapping("/updateAccount/{userId}")
     public ResponseEntity<GenericResponse> updateUser(@PathVariable Long userId,@RequestBody @Valid UpdateAccountRequest request) {
-        User updatedUser = userService.updateUser(userId, request);
+        User updatedUser = userService.updateUserProfile(userId, request);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new GenericResponse<>( updatedUser,"Update successfully",HttpStatus.OK.value()));
     }

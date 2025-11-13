@@ -82,11 +82,10 @@ public class AccountServiceImpl implements AccountService {
             throw new UserNotFoundException("No accounts found for userId: " + userId);
         }
 
-        // Map and manually set userId
         List<AccountDto> accountDtos = accounts.stream()
                 .map(account -> {
                     AccountDto dto = accountMapper.toAccountDto(account);
-                    dto.setUserId(userId); // 👈 set the user ID explicitly
+                    dto.setUserId(userId);
                     return dto;
                 })
                 .toList();
@@ -97,10 +96,8 @@ public class AccountServiceImpl implements AccountService {
 
 
 
-
-
     @Override
-//    @Cacheable(value = "accountsByUser", key = "#accountNumber")
+    @Cacheable(value = "accountsByUser", key = "#accountNumber")
     public AccountDto getAccountByAccountNumber(String accountNumber) {
         log.info("Fetching account for account number: {}", accountNumber);
 
