@@ -29,5 +29,5 @@ bin/
 .DS_Store
 
 # Environment files (IMPORTANT)
-.env
-.env.*
+
+
