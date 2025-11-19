@@ -10,6 +10,7 @@ This API supports the core functions of a modern banking platform, including:
 * User registration and authentication
 * Current and savings account management
 * Real-time deposits and withdrawals
+* Two-Factor Authentication (2FA) using OTP
 * Transafers INTER & INTRA
 * Administrative controls for account activation, deactivation, and user management
 
@@ -20,8 +21,13 @@ Key Features
 User Features
 
 * Register new users and verify identity
+* Secure Login with Two-Factor Authentication (OTP):
+   Step 1: User enters email + password
+   Step 2: System generates a 6-digit OTP, saves it in Redis (5-min TTL), and emails it to the user
+   Step 3: User submits OTP to complete login and receive
 * Create and manage current or savings accounts
 * Make real-time deposits and withdrawals
+* Two-Factor Authentication (2FA) using OTP
 * Reset password through an OTP-based email system (via Mailtrap)
 * View and update profile information
 * Change password securely

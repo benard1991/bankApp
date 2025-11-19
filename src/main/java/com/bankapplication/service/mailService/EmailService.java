@@ -9,4 +9,6 @@ public interface EmailService {
     void sendAccountDeactivatedEmail(String toEmail, String firstName);
     void sendAccountActivatedEmail(String toEmail, String firstName);
     void sendPasswordChangeConfirmation(String toEmail, String firstName);
+
+    public void sendOtpEmail(String firstName, String username, String otp);
 }

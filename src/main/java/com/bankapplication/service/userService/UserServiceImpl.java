@@ -15,9 +15,11 @@ import com.bankapplication.repository.TokenRepository;
 import com.bankapplication.repository.UserRepository;
 import com.bankapplication.service.JwtService;
 import com.bankapplication.service.mailService.EmailService;
+import com.bankapplication.service.otpService.OtpService;
 import com.bankapplication.service.roleService.RoleService;
 import com.bankapplication.service.tokenService.TokenService;
 import com.bankapplication.util.AccountNumberGenerator;
+import com.bankapplication.util.OtpUtil;
 import com.bankapplication.util.ResetPasswordOtp;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Transformation;
@@ -32,6 +34,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -60,59 +63,97 @@ public class UserServiceImpl implements UserService {
     private final ResetPasswordOtp resetPasswordOtp;
     private final EmailService emailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private  final TokenService tokenService;
+    private final TokenService tokenService;
     private final Cloudinary cloudinary;
     private final UserMapper userMapper;
+    private final OtpService otpService;
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
+    @Override
+    public void initiateLogin(String username, String password) {
 
-    public Map<String, Object> login(String username, String password) {
         try {
+            logger.info("Attempting login for username: {}", username);
+
+            // Step 1 – Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
             );
+
             User user = (User) authentication.getPrincipal();
-            logger.info("Authenticated user " + user);
 
-            Map<String, Object> tokens = jwtService.generateAccessAndRefreshTokens(user);
-            Map<String, Object> response = new HashMap<>();
-            response.put("accessToken", tokens.get("accessToken"));
-            response.put("refreshToken", tokens.get("refreshToken"));
-            response.put("accessTokenExpiration", tokens.get("accessTokenExpiration"));
-            response.put("refreshTokenExpiration", tokens.get("refreshTokenExpiration"));
+            // Step 2 – Generate OTP
+            String otp = OtpUtil.generateOtp(6);
+            logger.info("Generated OTP for {}: {}", username, otp);
 
-            // Add user info to the response
-            Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("id", user.getId());
-            userInfo.put("username", user.getUsername());
-            userInfo.put("firstname", user.getFirstname());
-            userInfo.put("lastname", user.getLastname());
-            userInfo.put("email", user.getUsername()); // Using username as email
-            userInfo.put("phoneNumber", user.getPhoneNumber());
-            userInfo.put("role", user.getRoles().stream().map(role -> role.getName()).collect(Collectors.joining(", "))); // Role as a single string
-            userInfo.put("age", user.getAge());
-            userInfo.put("nationality", user.getNationality());
-            userInfo.put("religion", user.getReligion());
-            userInfo.put("accountType", user.getAccountType());
-            userInfo.put("localGovernment", user.getLocalGovernment());
-            userInfo.put("bvn", user.getBvn());
-            userInfo.put("nin", user.getNin());
-            userInfo.put("state", user.getState());
-            userInfo.put("nextOfKinFirstName", user.getNextOfKinFirstName());
-            userInfo.put("nextOfKinLastName", user.getNextOfKinLastName());
-            userInfo.put("nextOfKinPhoneNumber", user.getNextOfKinPhoneNumber());
-            userInfo.put("nextOfKinAddress", user.getNextOfKinAddress());
+            // Step 3 – Store OTP
+            otpService.saveOtp(username, otp);
 
-            response.put("user", userInfo);
+            // Step 4 – Send OTP email
+            emailService.sendOtpEmail(user.getFirstname(), username, otp);
+            logger.info("OTP email sent to user: {}", username);
 
-            emailService.sendLoginNotification(user.getUsername(), user.getFirstname());
-
-            return response;
+        } catch (BadCredentialsException ex) {
+            logger.warn("Invalid credentials for username: {}", username);
+            throw new InvalideLoginCredentials("Invalid login credentials");
 
         } catch (Exception ex) {
-            throw new InvalideLoginCredentials("Invalid login credentails");
+            logger.error("Unexpected error during initiateLogin for {}", username, ex);
+            throw new RuntimeException("Login failed due to server error");
         }
+    }
+
+
+
+    @Override
+    public Map<String, Object> completeLogin(String username, String otp) {
+
+        boolean isValid = otpService.verifyOtp(username, otp);
+        if (!isValid) {
+            throw new InvalideLoginCredentials("Invalid OTP");
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new InvalideLoginCredentials("User not found"));
+
+        Map<String, Object> tokens = jwtService.generateAccessAndRefreshTokens(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("accessToken", tokens.get("accessToken"));
+        response.put("refreshToken", tokens.get("refreshToken"));
+        response.put("accessTokenExpiration", tokens.get("accessTokenExpiration"));
+        response.put("refreshTokenExpiration", tokens.get("refreshTokenExpiration"));
+
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("username", user.getUsername());
+        userInfo.put("firstname", user.getFirstname());
+        userInfo.put("lastname", user.getLastname());
+        userInfo.put("email", user.getUsername());
+        userInfo.put("phoneNumber", user.getPhoneNumber());
+        userInfo.put("role", user.getRoles().stream()
+                .map(role -> role.getName()).collect(Collectors.joining(", ")));
+        userInfo.put("age", user.getAge());
+        userInfo.put("nationality", user.getNationality());
+        userInfo.put("religion", user.getReligion());
+        userInfo.put("accountType", user.getAccountType());
+        userInfo.put("localGovernment", user.getLocalGovernment());
+        userInfo.put("bvn", user.getBvn());
+        userInfo.put("nin", user.getNin());
+        userInfo.put("state", user.getState());
+        userInfo.put("nextOfKinFirstName", user.getNextOfKinFirstName());
+        userInfo.put("nextOfKinLastName", user.getNextOfKinLastName());
+        userInfo.put("nextOfKinPhoneNumber", user.getNextOfKinPhoneNumber());
+        userInfo.put("nextOfKinAddress", user.getNextOfKinAddress());
+
+        response.put("user", userInfo);
+
+        emailService.sendLoginNotification(user.getUsername(), user.getFirstname());
+
+        otpService.invalidateOtp(username);
+
+        return response;
     }
 
 
@@ -212,7 +253,6 @@ public class UserServiceImpl implements UserService {
     }
 
 
-
     @Override
     @Cacheable(value = "userProfiles", key = "#userId")
     public GenericResponse<UserProfileDto> getUserProfile(Long userId) {
@@ -227,8 +267,6 @@ public class UserServiceImpl implements UserService {
 
         return new GenericResponse<>(profileDto, "User profile retrieved successfully", HttpStatus.OK.value());
     }
-
-
 
 
     @Override
@@ -450,9 +488,6 @@ public class UserServiceImpl implements UserService {
             throw new ImageUploadException("Failed to upload image to Cloudinary", e);
         }
     }
-
-
-
 
 
 }

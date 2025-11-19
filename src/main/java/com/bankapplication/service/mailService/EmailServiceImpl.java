@@ -132,16 +132,33 @@ public class EmailServiceImpl implements EmailService {
     @Async
     public void sendPasswordChangeConfirmation(String toEmail, String firstName) {
         String body = """
-            Hello %s,
+                Hello %s,
 
-            Your password has been successfully changed.
+                Your password has been successfully changed.
 
-            If you did not make this change, please contact our support team immediately or reset your password.
+                If you did not make this change, please contact our support team immediately or reset your password.
 
-            Stay secure,
-            Bank App Team
-            """.formatted(firstName);
+                Stay secure,
+                Bank App Team
+                """.formatted(firstName);
 
         sendEmail(toEmail, "Password Changed Successfully", body);
     }
+
+    @Override
+    public void sendOtpEmail(String firstName, String username, String otp) {
+        String body = """
+                Hello %s,
+
+                Your One-Time Password (OTP) is: %s
+
+                This OTP is valid for the next 5 minutes. Do not share it with anyone.
+
+                Stay secure,
+                Bank App Team
+                """.formatted(username, otp);
+
+        sendEmail(username, "Your OTP Code", body);
+    }
+
 }

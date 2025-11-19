@@ -40,8 +40,6 @@ public class TransactionServiceImpl implements TransactionService {
     private  final TransactionLockManager lockManager;;
 
 
-
-
     @Override
     public TransactionResponseDto handleTransaction(TransactionDto transactionDto, HttpServletRequest request) {
         logger.info("TransactionDto Request ===> {}", transactionDto);
@@ -140,7 +138,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         transactionUtils.createTransaction(sourceAccount, dto.getAmount(), "DEBIT", dto.getSourceAccountNumber(), dto.getDestinationAccountNumber(), "INTRA", null, "SUCCESS");
         transactionUtils.createTransaction(destinationAccount, dto.getAmount(), "CREDIT", dto.getSourceAccountNumber(), dto.getDestinationAccountNumber(), "INTRA", null, "SUCCESS");
-        
+
         return TransactionResponseDto.builder()
                 .transactionType("DEBIT")
                 .transferChannel("INTRA")
@@ -263,7 +261,6 @@ public class TransactionServiceImpl implements TransactionService {
                     clientIp,
                     "SUCCESS"
             );
-
             return updatedAccount;
         }
     }

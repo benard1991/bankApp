@@ -36,7 +36,7 @@ public class SecurityConfig {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
+                                "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/verify-otp").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex

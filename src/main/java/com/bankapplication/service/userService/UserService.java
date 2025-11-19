@@ -14,8 +14,9 @@ public interface UserService {
 
     User createUser(UserDto userDto);
 
-    public Map<String, Object> login(String username, String password);
+    public void initiateLogin(String username, String password);
 
+    public Map<String, Object> completeLogin(String username, String otp);
 
     GenericResponse<UserProfileDto> getUserProfile(Long userId);
 
