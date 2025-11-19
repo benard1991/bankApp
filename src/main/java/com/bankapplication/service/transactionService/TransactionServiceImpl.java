@@ -6,6 +6,7 @@ import com.bankapplication.exception.AccountNotFoundException;
 import com.bankapplication.exception.InsufficientFundsException;
 import com.bankapplication.exception.UserAlreadyExistsException;
 import com.bankapplication.exception.UserNotFoundException;
+import com.bankapplication.infrastructure.TransactionLockManager;
 import com.bankapplication.model.Account;
 import com.bankapplication.model.Transaction;
 import com.bankapplication.model.User;
@@ -36,6 +37,8 @@ public class TransactionServiceImpl implements TransactionService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
     private  final AuditTrailService auditTrailService;
     private  final RequestUtils requestUtils;
+    private  final TransactionLockManager lockManager;;
+
 
 
 
@@ -47,59 +50,76 @@ public class TransactionServiceImpl implements TransactionService {
             throw new UserAlreadyExistsException.InvalidAmountException("Transaction amount must be greater than zero.");
         }
 
-        Account sourceAccount = accountRepository.findByAccountNumber(transactionDto.getSourceAccountNumber())
-                .orElseThrow(() -> new AccountNotFoundException("Source account not found."));
-        logger.info("Source account found ===> {}", sourceAccount.getAccountNumber());
+        String sourceAccountNumber = transactionDto.getSourceAccountNumber();
+        String destinationAccountNumber = transactionDto.getDestinationAccountNumber();
 
-        if (sourceAccount.getBalance() < transactionDto.getAmount()) {
-            logger.warn("Insufficient funds for account {}", sourceAccount.getAccountNumber());
-            throw new InsufficientFundsException("Insufficient funds.");
+//        This will preveent race condition
+        Object sourceLock = lockManager.getLock(sourceAccountNumber);
+        Object destinationLock = destinationAccountNumber != null && !destinationAccountNumber.isEmpty()
+                ? lockManager.getLock(destinationAccountNumber)
+                : new Object(); // fallback for external destination
+
+        // Lock both accounts for INTRA-BANK, only source for INTER-BANK
+        Object firstLock = sourceAccountNumber.compareTo(destinationAccountNumber) < 0 ? sourceLock : destinationLock;
+        Object secondLock = sourceAccountNumber.compareTo(destinationAccountNumber) < 0 ? destinationLock : sourceLock;
+
+        synchronized (firstLock) {
+            synchronized (secondLock) {
+
+                Account sourceAccount = accountRepository.findByAccountNumber(sourceAccountNumber)
+                        .orElseThrow(() -> new AccountNotFoundException("Source account not found."));
+                logger.info("Source account found ===> {}", sourceAccount.getAccountNumber());
+
+                if (sourceAccount.getBalance() < transactionDto.getAmount()) {
+                    logger.warn("Insufficient funds for account {}", sourceAccount.getAccountNumber());
+                    throw new InsufficientFundsException("Insufficient funds.");
+                }
+
+                // Get client IP
+                String clientIp = requestUtils.getClientIp(request);
+
+                // Record Audit Trail before performing transaction
+                auditTrailService.recordAudit(
+                        sourceAccount.getUser().getId(),
+                        sourceAccount.getUser().getUsername(),
+                        "TRANSFER",
+                        "Transaction",
+                        String.valueOf(sourceAccount.getId()),
+                        String.valueOf(sourceAccount.getBalance()),
+                        String.valueOf(sourceAccount.getBalance() - transactionDto.getAmount()),
+                        "Initiated transfer of ₦" + transactionDto.getAmount() + " from account " + sourceAccount.getAccountNumber(),
+                        clientIp,
+                        "PENDING"
+                );
+
+                // Determine transfer channel
+                String channel = transactionDto.getTransferChannel().toUpperCase();
+                logger.info("Switching transaction channel ===> {}", channel);
+
+                TransactionResponseDto response;
+                switch (channel) {
+                    case "INTRA" -> response = handleIntraBankTransaction(transactionDto, sourceAccount);
+                    case "INTER" -> response = handleInterBankTransaction(transactionDto, sourceAccount);
+                    default -> throw new IllegalArgumentException("Unsupported transfer channel: " + channel);
+                }
+
+                // Update audit trail after success
+                auditTrailService.recordAudit(
+                        sourceAccount.getUser().getId(),
+                        sourceAccount.getUser().getUsername(),
+                        "TRANSFER",
+                        "Transaction",
+                        String.valueOf(sourceAccount.getId()),
+                        String.valueOf(sourceAccount.getBalance()),
+                        String.valueOf(sourceAccount.getBalance() - transactionDto.getAmount()),
+                        "Successfully transferred ₦" + transactionDto.getAmount() + " via " + channel + " channel.",
+                        clientIp,
+                        "SUCCESS"
+                );
+
+                return response;
+            }
         }
-
-        // Get client IP
-        String clientIp = requestUtils.getClientIp(request);
-
-        // Record Audit Trail (example before performing transaction)
-        auditTrailService.recordAudit(
-                sourceAccount.getUser().getId(),
-                sourceAccount.getUser().getUsername(),
-                "TRANSFER",
-                "Transaction",
-                String.valueOf(sourceAccount.getId()),
-                String.valueOf(sourceAccount.getBalance()),
-                String.valueOf(sourceAccount.getBalance() - transactionDto.getAmount()),
-                "Initiated transfer of ₦" + transactionDto.getAmount() + " from account " + sourceAccount.getAccountNumber(),
-                clientIp,
-                "PENDING"
-        );
-
-        // Determine transfer channel
-        String channel = transactionDto.getTransferChannel().toUpperCase();
-        logger.info("Switching transaction channel ===> {}", channel);
-
-        TransactionResponseDto response;
-
-        switch (channel) {
-            case "INTRA" -> response = handleIntraBankTransaction(transactionDto, sourceAccount);
-            case "INTER" -> response = handleInterBankTransaction(transactionDto, sourceAccount);
-            default -> throw new IllegalArgumentException("Unsupported transfer channel: " + channel);
-        }
-
-        // Update audit trail after success
-        auditTrailService.recordAudit(
-                sourceAccount.getUser().getId(),
-                sourceAccount.getUser().getUsername(),
-                "TRANSFER",
-                "Transaction",
-                String.valueOf(sourceAccount.getId()),
-                String.valueOf(sourceAccount.getBalance()),
-                String.valueOf(sourceAccount.getBalance() - transactionDto.getAmount()),
-                "Successfully transferred ₦" + transactionDto.getAmount() + " via " + channel + " channel.",
-                clientIp,
-                "SUCCESS"
-        );
-
-        return response;
     }
 
     private TransactionResponseDto handleIntraBankTransaction(TransactionDto dto, Account sourceAccount) {
@@ -120,9 +140,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         transactionUtils.createTransaction(sourceAccount, dto.getAmount(), "DEBIT", dto.getSourceAccountNumber(), dto.getDestinationAccountNumber(), "INTRA", null, "SUCCESS");
         transactionUtils.createTransaction(destinationAccount, dto.getAmount(), "CREDIT", dto.getSourceAccountNumber(), dto.getDestinationAccountNumber(), "INTRA", null, "SUCCESS");
-
-
-
+        
         return TransactionResponseDto.builder()
                 .transactionType("DEBIT")
                 .transferChannel("INTRA")
@@ -160,67 +178,94 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional
     @Override
     public Account deposit(String accountNumber, double amount, HttpServletRequest request) {
-        if (amount <= 0) {
-            throw new UserAlreadyExistsException.InvalidAmountException("Deposit amount must be greater than zero.");
+
+        Object lock = lockManager.getLock(accountNumber);
+
+        synchronized (lock) {
+
+            if (amount <= 0) {
+                throw new UserAlreadyExistsException.InvalidAmountException("Deposit amount must be greater than zero.");
+            }
+
+            Account account = accountRepository.findByAccountNumber(accountNumber)
+                    .orElseThrow(() -> new AccountNotFoundException("Account not found for account number: " + accountNumber));
+
+            double oldBalance = account.getBalance();
+            double newBalance = oldBalance + amount;
+
+            account.setBalance(newBalance);
+
+            Account updatedAccount = accountRepository.save(account);
+
+            // Create transaction history
+            transactionUtils.createTransaction(updatedAccount, amount, "CREDIT", accountNumber, null, "DEPOSIT", null, "SUCCESS"
+            );
+
+            // Add Audit Trail
+            String clientIp = requestUtils.getClientIp(request);
+            auditTrailService.recordAudit(
+                    account.getUser().getId(),
+                    account.getUser().getUsername(),
+                    "DEPOSIT",
+                    "Account",
+                    String.valueOf(account.getId()),
+                    String.valueOf(oldBalance),
+                    String.valueOf(newBalance),
+                    "User deposited ₦" + amount + " into account " + accountNumber,
+                    clientIp,
+                    "SUCCESS"
+            );
+
+            return updatedAccount;
         }
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found for account number: " + accountNumber));
-
-        account.setBalance(account.getBalance() + amount);
-
-        Account updatedAccount = accountRepository.save(account);
-
-
-        transactionUtils.createTransaction(updatedAccount, amount, "CREDIT", accountNumber, null, "DEPOSIT", null, "SUCCESS");
-
-        // Add Audit Trail here
-        String clientIp = requestUtils.getClientIp(request);
-        auditTrailService.recordAudit(
-                account.getUser().getId(),
-                account.getUser().getUsername(),
-                "DEPOSIT",
-                "Account",
-                String.valueOf(account.getId()),
-                String.valueOf(account.getBalance()),
-                String.valueOf(updatedAccount.getBalance()),
-                "User deposited ₦" + amount + " from account " + accountNumber,
-                clientIp,
-                "SUCCESS"
-        );
-
-        return updatedAccount;
     }
 
+
     @Override
-    public Account withdraw(String accountNumber, double amount,  HttpServletRequest request) {
-        if (amount <= 0) {
-            throw new UserAlreadyExistsException.InvalidAmountException("withdraw amount must be greater than zero.");
+    public Account withdraw(String accountNumber, double amount, HttpServletRequest request) {
+
+        Object lock = lockManager.getLock(accountNumber);
+
+        synchronized (lock) {
+
+            if (amount <= 0) {
+                throw new UserAlreadyExistsException.InvalidAmountException("Withdrawal amount must be greater than zero.");
+            }
+
+            Account account = accountRepository.findByAccountNumber(accountNumber)
+                    .orElseThrow(() ->
+                            new AccountNotFoundException("Account not found for account number: " + accountNumber));
+
+            double oldBalance = account.getBalance();
+
+            if (oldBalance < amount) {
+                throw new UserAlreadyExistsException.InvalidAmountException("Insufficient balance for withdrawal.");
+            }
+
+            double newBalance = oldBalance - amount;
+            account.setBalance(newBalance);
+
+            Account updatedAccount = accountRepository.save(account);
+
+            transactionUtils.createTransaction(updatedAccount, amount, "DEBIT", accountNumber, null, "WITHDRAWAL", null, "SUCCESS");
+
+            // Audit Trail
+            String clientIp = requestUtils.getClientIp(request);
+            auditTrailService.recordAudit(
+                    account.getUser().getId(),
+                    account.getUser().getUsername(),
+                    "WITHDRAWAL",
+                    "Account",
+                    String.valueOf(account.getId()),
+                    String.valueOf(oldBalance),
+                    String.valueOf(newBalance),
+                    "User withdrew ₦" + amount + " from account " + accountNumber,
+                    clientIp,
+                    "SUCCESS"
+            );
+
+            return updatedAccount;
         }
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found for account number: " + accountNumber));
-
-        account.setBalance(account.getBalance() - amount);
-
-        Account updatedAccount = accountRepository.save(account);
-
-        transactionUtils.createTransaction(updatedAccount, amount, "CREDIT", accountNumber, null, "WITHDRAWAL", null, "SUCCESS");
-
-        // Add Audit Trail here
-        String clientIp = requestUtils.getClientIp(request);
-              auditTrailService.recordAudit(
-                account.getUser().getId(),
-                account.getUser().getUsername(),
-                "WITHDRAWAL",
-                "Account",
-                String.valueOf(account.getId()),
-                String.valueOf(account.getBalance()),
-                String.valueOf(updatedAccount.getBalance()),
-                "User withdrew ₦" + amount + " from account " + accountNumber,
-                      clientIp,
-                "SUCCESS"
-        );
-
-        return updatedAccount;
     }
 
     @Override

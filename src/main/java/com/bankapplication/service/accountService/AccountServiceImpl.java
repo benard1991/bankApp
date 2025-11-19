@@ -10,8 +10,8 @@ import com.bankapplication.repository.AccountRepository;
 import com.bankapplication.repository.TransactionRepository;
 import com.bankapplication.repository.UserRepository;
 import com.bankapplication.util.AccountNumberGenerator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +20,7 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
@@ -27,16 +28,6 @@ public class AccountServiceImpl implements AccountService {
     private final TransactionRepository transactionRepository;
     private final AccountMapper accountMapper;
 
-    @Autowired
-    public AccountServiceImpl(AccountRepository accountRepository,
-                              UserRepository userRepository,
-                              TransactionRepository transactionRepository,
-                              AccountMapper accountMapper) {
-        this.accountRepository = accountRepository;
-        this.userRepository = userRepository;
-        this.transactionRepository = transactionRepository;
-        this.accountMapper = accountMapper;
-    }
 
     @Override
     public Account createAccount(AccountDto accountDto) {

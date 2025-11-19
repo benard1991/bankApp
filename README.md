@@ -34,6 +34,11 @@ Admin Features
 * Monitor audit logs for user and account actions
 * View and manage all transactions
 
+Transaction Lock Management
+
+Ensures safe and reliable handling of all transactions — deposits, withdrawals, inter-bank, and intra-bank transfers 
+by preventing race conditions and maintaining data integrity under high concurrency.
+
 Security and Performance
 
 * JWT authentication for secure, stateless access
