@@ -14,14 +14,14 @@ This API supports the core functions of a modern banking platform, including:
 * Real-time deposits and withdrawals
 * Two-Factor Authentication (2FA) using OTP
 * Transfers INTER & INTRA
-* **Real-time fraud detection and prevention**
+* Real-time fraud detection and prevention**
 * Administrative controls for account activation, deactivation, and user management
 
 ## Key Features
 
 ### User Features
 * Register new users and verify identity
-* **Secure Login with Two-Factor Authentication (OTP):**
+* Secure Login with Two-Factor Authentication (OTP):**
    * Step 1: User enters email + password
    * Step 2: System generates a 6-digit OTP, saves it in Redis (5-min TTL), and emails it to the user
    * Step 3: User submits OTP to complete login and receive JWT token
@@ -37,8 +37,8 @@ This API supports the core functions of a modern banking platform, including:
 * Manage roles and permissions
 * Monitor audit logs for user and account actions
 * View and manage all transactions
-* **Review and resolve fraud alerts**
-* **Access fraud detection dashboard**
+* Review and resolve fraud alerts
+* Access fraud detection dashboard
 
 ### Transaction Lock Management
 Ensures safe and reliable handling of all transactions — deposits, withdrawals, inter-bank, and intra-bank transfers by preventing race conditions and maintaining data integrity under high concurrency.
@@ -53,7 +53,7 @@ Ensures safe and reliable handling of all transactions — deposits, withdrawals
 
 The system includes **multi-layer fraud detection** that monitors transactions in real-time to protect against suspicious activities:
 
-### 🛡️ Fraud Detection Features
+### ️ Fraud Detection Features
 
 #### 1. **High-Value Transaction Detection**
 Automatically flags deposits or withdrawals that exceed predefined thresholds.
@@ -121,7 +121,7 @@ Flags transactions from unusual or impossible locations.
 * Same user attempts transaction from London at 10:05 AM
 * Alert triggered for impossible travel
 
-### 📊 Fraud Alert Management
+###  Fraud Alert Management
 
 #### Alert Structure
 ```java
@@ -142,7 +142,7 @@ Flags transactions from unusual or impossible locations.
 * **Block/unblock accounts** based on fraud assessment
 * **Export fraud reports** for compliance and analysis
 
-### 🔍 Audit Trail Integration
+###  Audit Trail Integration
 
 Every transaction includes comprehensive logging:
 
@@ -161,7 +161,7 @@ Audit Log Entry:
 - Status: SUCCESS
 ```
 
-### 🚨 Fraud Response Workflow
+###  Fraud Response Workflow
 
 ```
 Transaction Initiated
@@ -187,7 +187,7 @@ Transaction Initiated
   Lock Released
 ```
 
-### 📈 Fraud Detection Metrics
+###  Fraud Detection Metrics
 
 The system tracks:
 * Total alerts generated
