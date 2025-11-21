@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,9 +22,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     int countByDateRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.transferChannel = :type")
-    Double sumByType(@Param("type") String type);
+    BigDecimal sumByType(@Param("type") String type);
 
     @Query(value = "SELECT status, COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() GROUP BY status", nativeQuery = true)
     List<Object[]> getTodayTransactionStats();
+
+    @Query("SELECT COUNT(t) FROM Transaction t WHERE t.account.id = :accountId AND t.transactionType = 'DEPOSIT' AND t.transactionDate >= :time")
+    int countDepositsSince(@Param("accountId") Long accountId, @Param("time") LocalDateTime time);
+
+    @Query("SELECT COUNT(t) FROM Transaction t WHERE t.ip = :ip AND t.createdAt >= :since")
+    long countByIpAndCreatedAtAfter(@Param("ip") String ip, @Param("since") LocalDateTime since);
+
+
+
+
 
 }

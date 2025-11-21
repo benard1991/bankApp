@@ -1,4 +1,4 @@
-package com.bankapplication.service.util;
+package com.bankapplication.util;
 
 import com.bankapplication.model.Account;
 import com.bankapplication.model.Transaction;
@@ -12,15 +12,16 @@ public class TransactionUtils {
 
     private final TransactionRepository transactionRepository;
 
-    public void createTransaction(
+    public Transaction createTransaction(
             Account account,
             Double amount,
             String transactionType,
             String sourceAccount,
-            String  destinationAccount,
+            String destinationAccount,
             String transferChannel,
             String destinationBank,
-            String status
+            String status,
+            String clientIp
     ) {
         Transaction transaction = new Transaction();
 
@@ -31,13 +32,13 @@ public class TransactionUtils {
         transaction.setTransferChannel(transferChannel);
         transaction.setDestinationBank(destinationBank);
         transaction.setStatus(status);
+        transaction.setIp(clientIp);
 
         if (account != null) {
             transaction.setAccount(account);
             transaction.setUser(account.getUser());
         }
 
-
-        transactionRepository.save(transaction);
+        return transactionRepository.save(transaction);
     }
 }

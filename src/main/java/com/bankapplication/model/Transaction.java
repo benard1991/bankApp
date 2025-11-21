@@ -1,6 +1,7 @@
 package com.bankapplication.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,6 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "transactions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Transaction {
 
     @Id
@@ -54,10 +56,19 @@ public class Transaction {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(length = 45)
+    private String ip;
+
     @PrePersist
     private void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+
         if (this.transactionDate == null) {
-            this.transactionDate = LocalDateTime.now();
+            this.transactionDate = now;
+        }
+
+        if (this.createdAt == null) {
+            this.createdAt = now;
         }
 
         String prefix = "TRN-";
@@ -66,4 +77,5 @@ public class Transaction {
 
         this.referenceNumber = prefix + date + randomPart;
     }
+
 }

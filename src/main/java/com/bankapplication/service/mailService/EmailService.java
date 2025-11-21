@@ -1,5 +1,7 @@
 package com.bankapplication.service.mailService;
 
+import java.math.BigDecimal;
+
 public interface EmailService {
 
     void sendResetPasswordLink(String toEmail, String token, String firstName);
@@ -11,4 +13,6 @@ public interface EmailService {
     void sendPasswordChangeConfirmation(String toEmail, String firstName);
 
     public void sendOtpEmail(String firstName, String username, String otp);
-}
+    public void sendDepositLimitAlert(String toEmail, String firstName, BigDecimal depositAmount, BigDecimal limit);
+
+    }

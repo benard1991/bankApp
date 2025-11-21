@@ -44,6 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,34 +77,33 @@ public class UserServiceImpl implements UserService {
         try {
             logger.info("Attempting login for username: {}", username);
 
-            // Step 1 – Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
             );
 
-            User user = (User) authentication.getPrincipal();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-            // Step 2 – Generate OTP
             String otp = OtpUtil.generateOtp(6);
             logger.info("Generated OTP for {}: {}", username, otp);
 
-            // Step 3 – Store OTP
-            otpService.saveOtp(username, otp);
+            // Save OTP in Redis via otpService (with expiry, e.g., 5 minutes)
+            otpService.saveOtp(user.getUsername(), otp);
 
-            // Step 4 – Send OTP email
-            emailService.sendOtpEmail(user.getFirstname(), username, otp);
+            emailService.sendOtpEmail(user.getFirstname(), user.getUsername(), otp);
             logger.info("OTP email sent to user: {}", username);
 
         } catch (BadCredentialsException ex) {
             logger.warn("Invalid credentials for username: {}", username);
             throw new InvalideLoginCredentials("Invalid login credentials");
-
+        } catch (UsernameNotFoundException ex) {
+            logger.warn("User not found: {}", username);
+            throw new InvalideLoginCredentials("Invalid login credentials");
         } catch (Exception ex) {
-            logger.error("Unexpected error during initiateLogin for {}", username, ex);
+            logger.error("Error during initiateLogin for username: {}", username, ex);
             throw new RuntimeException("Login failed due to server error");
         }
     }
-
 
 
     @Override
@@ -155,7 +155,6 @@ public class UserServiceImpl implements UserService {
 
         return response;
     }
-
 
     @Override
     public User createUser(UserDto userDto) {
@@ -222,7 +221,7 @@ public class UserServiceImpl implements UserService {
         Account account = new Account();
         account.setAccountNumber(AccountNumberGenerator.generateAccountNumber());
         account.setAccountType(requestedType);
-        account.setBalance(0.00);
+        account.setBalance(BigDecimal.valueOf(0.00));
         account.setUser(savedUser);
         accountRepository.save(account);
 

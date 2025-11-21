@@ -1,8 +1,8 @@
 package com.bankapplication.model;
 
-import com.bankapplication.util.ResetPasswordOtp;
+import com.bankapplication.model.enums.AccountStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,8 +19,9 @@ import java.util.stream.Collectors;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"tokens", "accounts", "roles"})
+@ToString(exclude = {"tokens", "accounts", "roles", "fraudAlerts", "transactions"})
 @EqualsAndHashCode(of = "id")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User implements UserDetails {
 
     @Id
@@ -32,16 +33,20 @@ public class User implements UserDetails {
 
     private String firstname;
     private String lastname;
+
     @JsonIgnore
     private String password;
+
     private String phoneNumber;
     private Integer age;
     private String nin;
     private String bvn;
     private String state;
     private String localGovernment;
+
     @Column(name = "image")
     private String imageUrl;
+
     private String nationality;
     private String religion;
     private String accountType;
@@ -54,14 +59,18 @@ public class User implements UserDetails {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<Account> accounts;
+    @JsonIgnore
+    private List<Account> accounts = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -69,12 +78,24 @@ public class User implements UserDetails {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    @JsonManagedReference
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "users"})
     private Set<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<Token> tokens = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<FraudAlert> fraudAlerts = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<Transaction> transactions = new HashSet<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private PasswordResetToken passwordResetToken;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -112,9 +133,4 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private PasswordResetToken passwordResetToken;
 }

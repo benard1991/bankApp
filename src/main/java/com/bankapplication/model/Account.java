@@ -3,12 +3,14 @@ package com.bankapplication.model;
 import com.bankapplication.model.enums.AccountType;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Setter
@@ -17,7 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "accounts")
-
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Account {
 
     @Id
@@ -31,7 +33,7 @@ public class Account {
     @Column(nullable = false)
     private AccountType accountType;
 
-    private Double balance = 0.00;
+    private BigDecimal balance;
     // Define the Many-to-One relationship
     @ManyToOne
     @JoinColumn(name = "user_id")

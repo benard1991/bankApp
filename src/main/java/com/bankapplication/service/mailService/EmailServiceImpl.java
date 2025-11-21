@@ -5,6 +5,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class EmailServiceImpl implements EmailService {
 
@@ -14,18 +16,23 @@ public class EmailServiceImpl implements EmailService {
         this.mailSender = mailSender;
     }
 
-
-    @Async
+    // Use the emailExecutor from AsyncConfig
+    @Async("emailExecutor")
     public void sendEmail(String to, String subject, String body) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
-        mailSender.send(message);
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+        } catch (Exception e) {
+            // Log error instead of crashing app
+            System.err.println("Failed to send email to " + to + ": " + e.getMessage());
+        }
     }
 
     @Override
-    @Async
+    @Async("emailExecutor")
     public void sendResetPasswordLink(String toEmail, String token, String firstName) {
         String resetUrl = "https://yourdomain.com/reset-password?token=" + token;
 
@@ -45,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, "Password Reset Request", body);
     }
 
-    @Async
+    @Async("emailExecutor")
     public void sendRegistrationEmail(String toEmail, String firstName) {
         String body = """
                 Welcome, %s!
@@ -60,7 +67,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, "Account Registration Successful", body);
     }
 
-    @Async
+    @Async("emailExecutor")
     public void sendTransactionNotification(String toEmail, String firstName, String type, double amount, double balance) {
         String body = """
                 Hello, %s
@@ -79,7 +86,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, "Transaction Alert - " + type, body);
     }
 
-    @Async
+    @Async("emailExecutor")
     public void sendLoginNotification(String toEmail, String firstName) {
         String body = """
                 Hello, %s
@@ -95,8 +102,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, "New Login Detected", body);
     }
 
-
-    @Async
+    @Async("emailExecutor")
     public void sendAccountActivatedEmail(String toEmail, String firstName) {
         String body = """
                 Hello %s,
@@ -113,7 +119,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, "Account Activated", body);
     }
 
-    @Async
+    @Async("emailExecutor")
     public void sendAccountDeactivatedEmail(String toEmail, String firstName) {
         String body = """
                 Hello %s,
@@ -129,7 +135,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, "Account Deactivated", body);
     }
 
-    @Async
+    @Async("emailExecutor")
     public void sendPasswordChangeConfirmation(String toEmail, String firstName) {
         String body = """
                 Hello %s,
@@ -146,6 +152,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    @Async("emailExecutor")
     public void sendOtpEmail(String firstName, String username, String otp) {
         String body = """
                 Hello %s,
@@ -160,5 +167,29 @@ public class EmailServiceImpl implements EmailService {
 
         sendEmail(username, "Your OTP Code", body);
     }
+
+    @Async("emailExecutor")
+    public void sendDepositLimitAlert(String toEmail, String firstName, BigDecimal depositAmount, BigDecimal limit) {
+
+        String body = """
+        Hello %s,
+
+        Your recent deposit of ₦%.2f has reached or exceeded your allowed deposit limit of ₦%.2f.
+        The transaction has been flagged for review.
+
+        If you believe this is a mistake or need further assistance, please contact our support team.
+
+        Best regards,
+        Bank App Team
+        """
+                .formatted(
+                        firstName,
+                        depositAmount.doubleValue(),
+                        limit.doubleValue()
+                );
+
+        sendEmail(toEmail, "Deposit Limit Alert", body);
+    }
+
 
 }
